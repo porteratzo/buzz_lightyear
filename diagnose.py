@@ -33,7 +33,9 @@ def check_running_on_pi():
     print_header("Hardware Check")
     try:
         with open('/proc/cpuinfo', 'r') as f:
-            if 'Raspberry Pi' in f.read():
+            # Read only first 1000 characters where 'Raspberry Pi' typically appears
+            content = f.read(1000)
+            if 'Raspberry Pi' in content:
                 print("✓ Running on Raspberry Pi")
                 return True
             else:
@@ -189,8 +191,13 @@ def check_dependencies():
         for req in requirements:
             package = req.split('==')[0].split('>=')[0]
             try:
-                __import__(package.replace('-', '_'))
-                print(f"✓ {package}")
+                # Handle special case for RPi.GPIO
+                if package == 'RPi.GPIO':
+                    import RPi.GPIO
+                    print(f"✓ {package}")
+                else:
+                    __import__(package.replace('-', '_'))
+                    print(f"✓ {package}")
             except ImportError:
                 print(f"✗ {package} - NOT INSTALLED")
         return True

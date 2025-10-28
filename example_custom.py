@@ -55,6 +55,8 @@ class CustomBuzzController(BuzzController):
     
     def custom_strobe_pattern(self):
         """Example: Different strobe pattern"""
+        import RPi.GPIO as GPIO
+        
         print("Activating custom strobe pattern...")
         
         # Stop default strobe
@@ -64,7 +66,6 @@ class CustomBuzzController(BuzzController):
         for _ in range(3):
             self._play_sound('beep.wav')
             for __ in range(3):
-                import RPi.GPIO as GPIO
                 GPIO.output(self.config['strobe_led_pin'], GPIO.HIGH)
                 time.sleep(0.1)
                 GPIO.output(self.config['strobe_led_pin'], GPIO.LOW)
