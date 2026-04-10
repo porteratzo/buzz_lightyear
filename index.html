@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🐾 FunCam</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700;900&display=swap');
+
+  :root {
+    --bg: #fff9f0;
+    --primary: #ff6b6b;
+    --secondary: #ffd93d;
+    --accent: #6bcb77;
+    --purple: #c77dff;
+    --dark: #2d2d2d;
+    --card: #ffffff;
+    --shadow: 0 8px 32px rgba(0,0,0,0.12);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: var(--bg);
+    background-image:
+      radial-gradient(circle at 20% 20%, #ffd93d33 0%, transparent 50%),
+      radial-gradient(circle at 80% 80%, #ff6b6b22 0%, transparent 50%),
+      radial-gradient(circle at 60% 10%, #6bcb7722 0%, transparent 40%);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px;
+    overflow-x: hidden;
+  }
+
+  h1 {
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(2rem, 6vw, 3.5rem);
+    color: var(--primary);
+    text-shadow: 4px 4px 0 var(--secondary);
+    letter-spacing: 2px;
+    margin-bottom: 4px;
+    animation: bounce 2s ease-in-out infinite;
+  }
+
+  .subtitle {
+    font-size: 1rem;
+    color: #888;
+    margin-bottom: 16px;
+    font-weight: 700;
+  }
+
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
+
+  .app-wrapper {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+    max-width: 1100px;
+  }
+
+  /* Camera section */
+  .camera-section {
+    flex: 1;
+    min-width: 300px;
+    max-width: 560px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .cam-container {
+    position: relative;
+    width: 100%;
+    border-radius: 28px;
+    overflow: hidden;
+    background: #000;
+    box-shadow: var(--shadow), 0 0 0 6px var(--secondary);
+    aspect-ratio: 4/3;
+  }
+
+  #video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transform: scaleX(-1);
+  }
+
+  #overlay-canvas {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    transform: scaleX(-1);
+  }
+
+  #filter-canvas {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+  }
+
+  .filter-label {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255,255,255,0.85);
+    backdrop-filter: blur(8px);
+    padding: 4px 16px;
+    border-radius: 20px;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1rem;
+    color: var(--dark);
+    pointer-events: none;
+    white-space: nowrap;
+    transition: opacity 0.3s;
+  }
+
+  .no-cam-msg {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 700;
+    gap: 8px;
+    background: #1a1a2e;
+    text-align: center;
+    padding: 20px;
+  }
+
+  .no-cam-msg .icon { font-size: 3rem; }
+
+  /* Snap button */
+  .snap-btn {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    border: 5px solid var(--secondary);
+    background: var(--primary);
+    cursor: pointer;
+    font-size: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.15s, box-shadow 0.15s;
+    box-shadow: 0 4px 16px rgba(255,107,107,0.5);
+    flex-shrink: 0;
+    align-self: center;
+  }
+
+  .snap-btn:hover { transform: scale(1.1); }
+  .snap-btn:active { transform: scale(0.95); }
+
+  /* Snap flash */
+  .flash {
+    position: absolute;
+    inset: 0;
+    background: white;
+    border-radius: 22px;
+    pointer-events: none;
+    opacity: 0;
+  }
+
+  .flash.flash-anim {
+    animation: flashAnim 0.5s ease-out forwards;
+  }
+
+  @keyframes flashAnim {
+    0% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  /* Snapshot gallery */
+  .snapshots {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 560px;
+  }
+
+  .snap-thumb {
+    width: 80px;
+    height: 60px;
+    border-radius: 10px;
+    object-fit: cover;
+    border: 3px solid var(--purple);
+    cursor: pointer;
+    transition: transform 0.2s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  }
+
+  .snap-thumb:hover { transform: scale(1.1) rotate(-3deg); }
+
+  /* Filter panel */
+  .filter-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 240px;
+    max-width: 300px;
+    flex: 1;
+  }
+
+  .panel-section {
+    background: var(--card);
+    border-radius: 20px;
+    padding: 16px;
+    box-shadow: var(--shadow);
+  }
+
+  .panel-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.1rem;
+    color: var(--dark);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .filter-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  .filter-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 4px;
+    border-radius: 14px;
+    border: 3px solid transparent;
+    background: #f5f5f5;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: var(--dark);
+    font-family: 'Nunito', sans-serif;
+  }
+
+  .filter-btn .emoji { font-size: 1.5rem; line-height: 1; }
+
+  .filter-btn:hover {
+    background: #fff;
+    transform: scale(1.05);
+    border-color: var(--secondary);
+  }
+
+  .filter-btn.active {
+    background: var(--secondary);
+    border-color: var(--primary);
+    transform: scale(1.08);
+    box-shadow: 0 4px 12px rgba(255,217,61,0.5);
+  }
+
+  .overlay-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  .overlay-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 4px;
+    border-radius: 14px;
+    border: 3px solid transparent;
+    background: #f5f5f5;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: var(--dark);
+    font-family: 'Nunito', sans-serif;
+  }
+
+  .overlay-btn .emoji { font-size: 1.5rem; line-height: 1; }
+
+  .overlay-btn:hover {
+    background: #fff;
+    transform: scale(1.05);
+    border-color: var(--accent);
+  }
+
+  .overlay-btn.active {
+    background: #d4f7dc;
+    border-color: var(--accent);
+    transform: scale(1.08);
+    box-shadow: 0 4px 12px rgba(107,203,119,0.4);
+  }
+
+  /* Status bar */
+  .status-bar {
+    text-align: center;
+    font-size: 0.8rem;
+    color: #aaa;
+    font-weight: 700;
+  }
+
+  .status-bar.tracking { color: var(--accent); }
+  .status-bar.no-face { color: var(--primary); }
+
+  /* Modal for snapshots */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+
+  .modal-overlay.open {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  .modal-img {
+    max-width: 90vw;
+    max-height: 85vh;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    border: 5px solid var(--secondary);
+  }
+
+  .modal-close {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: white;
+    border: none;
+    font-size: 1.3rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--shadow);
+  }
+
+  .modal-download {
+    position: absolute;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 12px 28px;
+    border-radius: 30px;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.1rem;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(255,107,107,0.5);
+    text-decoration: none;
+  }
+
+  .row { display: flex; align-items: center; gap: 12px; justify-content: center; }
+
+  /* Loading */
+  .loading-bar {
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary), var(--secondary), var(--accent));
+    border-radius: 2px;
+    width: 0%;
+    transition: width 0.3s;
+    margin-top: 4px;
+  }
+</style>
+</head>
+<body>
+
+<h1>🐾 FunCam</h1>
+<p class="subtitle">Make funny faces! 📸</p>
+
+<div class="app-wrapper">
+  <!-- Camera -->
+  <div class="camera-section">
+    <div class="cam-container" id="camContainer">
+      <video id="video" autoplay muted playsinline></video>
+      <canvas id="filter-canvas"></canvas>
+      <canvas id="overlay-canvas"></canvas>
+      <div class="filter-label" id="filterLabel">No Filter</div>
+      <div class="flash" id="flash"></div>
+      <div class="no-cam-msg" id="noCamMsg" style="display:none">
+        <div class="icon">📷</div>
+        <div>Camera access needed!</div>
+        <div style="font-size:0.85rem;color:#aaa">Allow camera in your browser</div>
+      </div>
+    </div>
+    <div class="status-bar" id="statusBar">Loading face detection…</div>
+    <div class="loading-bar" id="loadingBar"></div>
+    <div class="row">
+      <button class="snap-btn" id="snapBtn" title="Take photo">📸</button>
+    </div>
+    <div class="snapshots" id="snapshots"></div>
+  </div>
+
+  <!-- Controls -->
+  <div class="filter-panel">
+    <div class="panel-section">
+      <div class="panel-title">🎨 Color Filters</div>
+      <div class="filter-grid" id="filterGrid"></div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-title">🐶 Face Overlays</div>
+      <div class="overlay-grid" id="overlayGrid"></div>
+      <div style="margin-top:10px;font-size:0.75rem;color:#aaa;font-weight:700;">
+        ✨ Overlays follow your face automatically
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <button class="modal-close" id="modalClose">✕</button>
+  <img class="modal-img" id="modalImg" src="" alt="Snapshot">
+  <a class="modal-download" id="modalDownload" download="funcam-snap.png">💾 Save Photo</a>
+</div>
+
+<!-- face-api.js -->
+<script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+<script>
+// ─── Config ────────────────────────────────────────────────────────────────
+
+const COLOR_FILTERS = [
+  { id: 'none',       label: 'Normal',    emoji: '😊', css: 'none' },
+  { id: 'vivid',      label: 'Vivid',     emoji: '🌈', css: 'saturate(2.5) contrast(1.2)' },
+  { id: 'bw',         label: 'B&W',       emoji: '🖤', css: 'grayscale(1) contrast(1.3)' },
+  { id: 'sepia',      label: 'Retro',     emoji: '📜', css: 'sepia(0.9) contrast(1.1)' },
+  { id: 'cool',       label: 'Icy',       emoji: '🧊', css: 'hue-rotate(180deg) saturate(1.5)' },
+  { id: 'warm',       label: 'Warm',      emoji: '🌅', css: 'sepia(0.4) saturate(1.8) hue-rotate(-15deg)' },
+  { id: 'invert',     label: 'Alien',     emoji: '👽', css: 'invert(0.85) hue-rotate(90deg)' },
+  { id: 'night',      label: 'Night',     emoji: '🌙', css: 'brightness(0.5) contrast(1.5) saturate(0.5)' },
+  { id: 'neon',       label: 'Neon',      emoji: '💜', css: 'hue-rotate(280deg) saturate(3) contrast(1.3) brightness(1.2)' },
+];
+
+// AR overlays: each is drawn relative to face landmarks
+const AR_OVERLAYS = [
+  { id: 'none',      label: 'None',       emoji: '🚫' },
+  { id: 'dog',       label: 'Doggo',      emoji: '🐕' },
+  { id: 'cat',       label: 'Kitty',      emoji: '🐱' },
+  { id: 'clown',     label: 'Clown',      emoji: '🤡' },
+  { id: 'crown',     label: 'Crown',      emoji: '👑' },
+  { id: 'glasses',   label: 'Glasses',    emoji: '🕶️' },
+  { id: 'bunny',     label: 'Bunny',      emoji: '🐰' },
+  { id: 'alien',     label: 'Alien',      emoji: '👽' },
+  { id: 'fire',      label: 'Fire',       emoji: '🔥' },
+];
+
+// ─── State ─────────────────────────────────────────────────────────────────
+let activeFilter = 'none';
+let activeOverlay = 'none';
+let faceApiReady = false;
+let detectionLoop = null;
+let lastDetections = [];
+let videoReady = false;
+
+const video = document.getElementById('video');
+const overlayCanvas = document.getElementById('overlay-canvas');
+const overlayCtx = overlayCanvas.getContext('2d');
+const filterLabel = document.getElementById('filterLabel');
+const statusBar = document.getElementById('statusBar');
+const loadingBar = document.getElementById('loadingBar');
+
+// ─── Build UI ───────────────────────────────────────────────────────────────
+function buildFilterGrid() {
+  const grid = document.getElementById('filterGrid');
+  COLOR_FILTERS.forEach(f => {
+    const btn = document.createElement('button');
+    btn.className = 'filter-btn' + (f.id === 'none' ? ' active' : '');
+    btn.dataset.id = f.id;
+    btn.innerHTML = `<span class="emoji">${f.emoji}</span>${f.label}`;
+    btn.onclick = () => {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeFilter = f.id;
+      applyVideoFilter();
+    };
+    grid.appendChild(btn);
+  });
+}
+
+function buildOverlayGrid() {
+  const grid = document.getElementById('overlayGrid');
+  AR_OVERLAYS.forEach(o => {
+    const btn = document.createElement('button');
+    btn.className = 'overlay-btn' + (o.id === 'none' ? ' active' : '');
+    btn.dataset.id = o.id;
+    btn.innerHTML = `<span class="emoji">${o.emoji}</span>${o.label}`;
+    btn.onclick = () => {
+      document.querySelectorAll('.overlay-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeOverlay = o.id;
+      if (o.id === 'none') overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+      filterLabel.textContent = o.id === 'none' ? (activeFilter === 'none' ? 'No Filter' : COLOR_FILTERS.find(f=>f.id===activeFilter)?.label) : o.label;
+    };
+    grid.appendChild(btn);
+  });
+}
+
+function applyVideoFilter() {
+  const f = COLOR_FILTERS.find(f => f.id === activeFilter);
+  video.style.filter = f ? f.css : 'none';
+  filterLabel.textContent = activeOverlay !== 'none'
+    ? AR_OVERLAYS.find(o=>o.id===activeOverlay)?.label
+    : (f?.id === 'none' ? 'No Filter' : f?.label);
+}
+
+// ─── Camera ─────────────────────────────────────────────────────────────────
+async function startCamera() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
+    });
+    video.srcObject = stream;
+    video.addEventListener('loadedmetadata', () => {
+      resizeCanvases();
+      videoReady = true;
+    });
+  } catch (e) {
+    document.getElementById('noCamMsg').style.display = 'flex';
+    statusBar.textContent = '⚠️ Camera not available';
+  }
+}
+
+function resizeCanvases() {
+  const rect = video.getBoundingClientRect();
+  overlayCanvas.width = video.videoWidth || 640;
+  overlayCanvas.height = video.videoHeight || 480;
+}
+
+// ─── Face API ───────────────────────────────────────────────────────────────
+const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model';
+
+async function loadModels() {
+  loadingBar.style.width = '30%';
+  statusBar.textContent = '🧠 Loading face detection…';
+  try {
+    await Promise.all([
+      faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+      faceapi.nets.faceLandmark68TinyNet.loadFromUri(MODEL_URL),
+    ]);
+    faceApiReady = true;
+    loadingBar.style.width = '100%';
+    statusBar.textContent = '✅ Ready! Show your face 😄';
+    statusBar.className = 'status-bar tracking';
+    setTimeout(() => { loadingBar.style.width = '0'; }, 500);
+    startDetectionLoop();
+  } catch (e) {
+    loadingBar.style.width = '0';
+    statusBar.textContent = '⚠️ Face detection unavailable (overlays disabled)';
+    console.warn('face-api load error', e);
+  }
+}
+
+function startDetectionLoop() {
+  const detect = async () => {
+    if (!videoReady || video.paused || !faceApiReady) {
+      detectionLoop = requestAnimationFrame(detect);
+      return;
+    }
+    try {
+      const detections = await faceapi
+        .detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.4 }))
+        .withFaceLandmarks(true);
+      lastDetections = detections;
+
+      if (detections.length > 0) {
+        statusBar.textContent = `🎭 Face detected!`;
+        statusBar.className = 'status-bar tracking';
+      } else {
+        statusBar.textContent = activeOverlay !== 'none' ? '👀 Move closer to the camera!' : '✅ Ready!';
+        statusBar.className = 'status-bar';
+      }
+
+      drawOverlays(detections);
+    } catch(e) { /* skip frame */ }
+
+    detectionLoop = requestAnimationFrame(detect);
+  };
+  detectionLoop = requestAnimationFrame(detect);
+}
+
+// ─── Draw Overlays ──────────────────────────────────────────────────────────
+function drawOverlays(detections) {
+  const c = overlayCanvas;
+  const ctx = overlayCtx;
+  ctx.clearRect(0, 0, c.width, c.height);
+
+  if (activeOverlay === 'none' || !detections.length) return;
+
+  // scale factor (canvas vs video element display size)
+  const scaleX = c.width / video.videoWidth;
+  const scaleY = c.height / video.videoHeight;
+
+  detections.forEach(det => {
+    const pts = det.landmarks.positions.map(p => ({
+      x: p.x * scaleX,
+      y: p.y * scaleY,
+    }));
+    const box = det.detection.box;
+    const faceW = box.width * scaleX;
+    const faceH = box.height * scaleY;
+    const faceX = box.x * scaleX;
+    const faceY = box.y * scaleY;
+    const cx = faceX + faceW / 2;
+
+    ctx.save();
+    switch(activeOverlay) {
+      case 'dog':   drawDog(ctx, pts, cx, faceX, faceY, faceW, faceH); break;
+      case 'cat':   drawCat(ctx, pts, cx, faceX, faceY, faceW, faceH); break;
+      case 'clown': drawClown(ctx, pts, cx, faceX, faceY, faceW, faceH); break;
+      case 'crown': drawCrown(ctx, pts, cx, faceX, faceY, faceW, faceH); break;
+      case 'glasses': drawGlasses(ctx, pts, cx, faceX, faceY, faceW, faceH); break;
+      case 'bunny': drawBunny(ctx, pts, cx, faceX, faceY, faceW, faceH); break;
+      case 'alien': drawAlien(ctx, pts, cx, faceX, faceY, faceW, faceH); break;
+      case 'fire':  drawFire(ctx, pts, cx, faceX, faceY, faceW, faceH); break;
+    }
+    ctx.restore();
+  });
+}
+
+// Landmark indices (68-point):
+// Nose tip: 33, Left eye: 36-41, Right eye: 42-47
+// Mouth: 48-67, Jaw: 0-16, Eyebrows: 17-26
+
+function drawDog(ctx, pts, cx, fx, fy, fw, fh) {
+  const earSize = fw * 0.38;
+  // Left ear (floppy brown)
+  ctx.fillStyle = '#8B5E3C';
+  ctx.beginPath();
+  ctx.ellipse(fx - earSize*0.1, fy + fh*0.1, earSize*0.45, earSize*0.7, -0.4, 0, Math.PI*2);
+  ctx.fill();
+  ctx.fillStyle = '#c9956b';
+  ctx.beginPath();
+  ctx.ellipse(fx - earSize*0.1, fy + fh*0.1, earSize*0.3, earSize*0.55, -0.4, 0, Math.PI*2);
+  ctx.fill();
+  // Right ear
+  ctx.fillStyle = '#8B5E3C';
+  ctx.beginPath();
+  ctx.ellipse(fx + fw + earSize*0.1, fy + fh*0.1, earSize*0.45, earSize*0.7, 0.4, 0, Math.PI*2);
+  ctx.fill();
+  ctx.fillStyle = '#c9956b';
+  ctx.beginPath();
+  ctx.ellipse(fx + fw + earSize*0.1, fy + fh*0.1, earSize*0.3, earSize*0.55, 0.4, 0, Math.PI*2);
+  ctx.fill();
+  // Dog nose
+  const nose = pts[33];
+  ctx.fillStyle = '#2d1b00';
+  ctx.beginPath();
+  ctx.ellipse(nose.x, nose.y, fw*0.13, fw*0.09, 0, 0, Math.PI*2);
+  ctx.fill();
+  // Nostrils
+  ctx.fillStyle = '#111';
+  ctx.beginPath(); ctx.ellipse(nose.x - fw*0.06, nose.y + fw*0.02, fw*0.03, fw*0.025, 0.3, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(nose.x + fw*0.06, nose.y + fw*0.02, fw*0.03, fw*0.025, -0.3, 0, Math.PI*2); ctx.fill();
+  // Tongue
+  const mouth = pts[62];
+  ctx.fillStyle = '#ff6b9d';
+  ctx.beginPath();
+  ctx.ellipse(mouth.x, mouth.y + fw*0.08, fw*0.09, fw*0.12, 0, 0, Math.PI*2);
+  ctx.fill();
+  ctx.fillStyle = '#e05585';
+  ctx.beginPath();
+  ctx.moveTo(mouth.x - fw*0.09, mouth.y + fw*0.08);
+  ctx.lineTo(mouth.x + fw*0.09, mouth.y + fw*0.08);
+  ctx.stroke();
+}
+
+function drawCat(ctx, pts, cx, fx, fy, fw, fh) {
+  con
